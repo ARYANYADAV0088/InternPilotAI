@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_URL from "../api";
 import { Bookmark, MapPin, Send } from "lucide-react";
 
 function SavedInternships() {
@@ -15,7 +16,7 @@ function SavedInternships() {
     const fetchSaved = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/internships/saved/list",
+          `${API_URL}/api/internships/saved/list`,
           {
             headers: {
               Authorization: "Bearer " + token,

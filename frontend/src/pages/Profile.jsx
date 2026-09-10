@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import API_URL from "../api";
 import { User, Save } from "lucide-react";
 
 function Profile() {
@@ -18,7 +19,7 @@ function Profile() {
     const fetchProfile = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/users/profile",
+          `${API_URL}/api/users/profile`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -54,7 +55,7 @@ function Profile() {
 
     try {
       await axios.put(
-        "http://localhost:5000/api/users/profile",
+        `${API_URL}/api/users/profile`,
         {
           name: profile.name,
         },

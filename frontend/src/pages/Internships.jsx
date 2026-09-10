@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import API_URL from "../api";
 import {
   BriefcaseBusiness,
   MapPin,
@@ -33,22 +34,22 @@ function Internships() {
         resumeResponse,
       ] = await Promise.all([
         axios.get(
-          "http://localhost:5000/api/internships",
+          `${API_URL}/api/internships`,
           { headers }
         ),
 
         axios.get(
-          "http://localhost:5000/api/applications",
+          `${API_URL}/api/applications`,
           { headers }
         ),
 
         axios.get(
-          "http://localhost:5000/api/internships/saved/list",
+         `${API_URL}/api/saved/list`,
           { headers }
         ),
 
         axios.get(
-          "http://localhost:5000/api/resumes",
+          `${API_URL}/api/resumes`,
           { headers }
         ),
       ]);
@@ -93,7 +94,7 @@ function Internships() {
   const handleApply = async (internshipId) => {
     try {
       await axios.post(
-        "http://localhost:5000/api/applications",
+        `${API_URL}/api/applications`,
         {
           internshipId,
           status: "applied",
@@ -122,7 +123,7 @@ function Internships() {
 
     try {
       await axios.post(
-        `http://localhost:5000/api/internships/${internshipId}/save`,
+       `${API_URL}/api/internships/${internshipId}/save`,
         {},
         {
           headers,
@@ -154,7 +155,7 @@ function Internships() {
       const resumeId = resumes[0]._id;
 
       const response = await axios.post(
-        "http://localhost:5000/api/matching",
+       `${API_URL}/api/matching`,
         {
           resumeId,
           internshipId,

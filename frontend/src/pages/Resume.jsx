@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import API_URL from "../api";
 import {
   FileText,
   Sparkles,
@@ -38,7 +39,7 @@ function Resume() {
   const fetchResumes = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/resumes",
+       `${API_URL}/api/resumes`,
         { headers }
       );
 
@@ -78,7 +79,7 @@ function Resume() {
 
     try {
       await axios.post(
-        "http://localhost:5000/api/resumes",
+       `${API_URL}/api/resumes`,
         {
           title: form.title,
           summary: form.summary,
@@ -143,7 +144,7 @@ function Resume() {
       setAnalysis(null);
 
       const response = await axios.post(
-        `http://localhost:5000/api/ai/resume/${resumeId}`,
+       `${API_URL}/api/ai/resume/${resumeId}`,
         {},
         { headers }
       );

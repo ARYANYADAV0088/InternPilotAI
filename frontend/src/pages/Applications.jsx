@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import API_URL from "../api";
 import { ClipboardCheck, ChevronDown } from "lucide-react";
 
 const statuses = ["applied", "interview", "selected", "rejected"];
@@ -13,7 +14,7 @@ function Applications() {
   const fetchApplications = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/applications",
+        `${API_URL}/api/applications`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -36,7 +37,7 @@ function Applications() {
   const updateStatus = async (applicationId, status) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/applications/${applicationId}`,
+       `${API_URL}/api/applications/${applicationId}`,
         { status },
         {
           headers: {

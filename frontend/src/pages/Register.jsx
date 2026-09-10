@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_URL from "../api";
 import { Sparkles } from "lucide-react";
 
 function Register() {
@@ -15,7 +16,7 @@ function Register() {
     setError("");
 
     try {
-      await axios.post("http://localhost:5000/api/auth/register", {
+      await axios.post(`${API_URL}/api/auth/register`, {
         name,
         email,
         password,

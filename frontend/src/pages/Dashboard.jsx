@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_URL from "../api";
 import {
   LayoutDashboard,
   FileText,
@@ -87,27 +88,27 @@ function Dashboard() {
           savedResponse,
         ] = await Promise.all([
           axios.get(
-            "http://localhost:5000/api/users/profile",
+            `${API_URL}/api/users/profile`,
             { headers }
           ),
 
           axios.get(
-            "http://localhost:5000/api/resumes",
+            `${API_URL}/api/users/resumes`,
             { headers }
           ),
 
           axios.get(
-            "http://localhost:5000/api/internships",
+           `${API_URL}/api/internships`,
             { headers }
           ),
 
           axios.get(
-            "http://localhost:5000/api/applications",
+            `${API_URL}/api/applications`,
             { headers }
           ),
 
           axios.get(
-            "http://localhost:5000/api/internships/saved/list",
+            `${API_URL}/api/internships/saved/list`,
             { headers }
           ),
         ]);
