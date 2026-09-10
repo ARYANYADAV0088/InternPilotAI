@@ -1,5 +1,5 @@
 import { Response } from "express";
-import Resume from "../models/Resume";
+import Resume from "../models/resume";
 import { AuthRequest } from "../middleware/authMiddleware";
 
 export const createResume = async (

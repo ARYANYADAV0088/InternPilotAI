@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
-import Resume from "../models/Resume";
+import Resume from "../models/resume";
 import Internship from "../models/Internship";
 import { analyzeResume } from "../services/aiService";
 
@@ -39,24 +39,13 @@ export const matchResumeToInternship = async (
     }
 
     // Send both resume + internship to AI
-    const analysis = await analyzeResume(
-      {
-        title: resume.title,
-        skills: resume.skills || [],
-        education: resume.education || [],
-        experience: resume.experience || [],
-        projects: resume.projects || [],
-      },
-      {
-        title: internship.title,
-        company: internship.company,
-        description: internship.description,
-        requiredSkills: internship.requiredSkills || [],
-        location: internship.location,
-        duration: internship.duration,
-        stipend: internship.stipend,
-      }
-    );
+    const analysis = await analyzeResume({
+  title: `${resume.title} - ${internship.title}`,
+  skills: resume.skills || [],
+  education: resume.education || [],
+  experience: resume.experience || [],
+  projects: resume.projects || [],
+});
 
     return res.json({
       message: "Resume matched successfully",

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { GoogleGenAI } from "@google/genai";
-import Resume from "../models/Resume";
+import Resume from "../models/resume";
 import Internship from "../models/Internship";
 
 const ai = new GoogleGenAI({
@@ -193,8 +193,11 @@ for (let attempt = 1; attempt <= 3; attempt++) {
   }
 }
 
-  const text = response.text?.trim();
+if (!response) {
+  throw new Error("Gemini did not return a response.");
+}
 
+const text = response.text?.trim();
   if (!text) {
     throw new Error("Gemini returned an empty response.");
   }

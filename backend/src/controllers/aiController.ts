@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
-import Resume from "../models/Resume";
+import Resume from "../models/resume";
 import { analyzeResume } from "../services/aiService";
 
 export const analyzeMyResume = async (

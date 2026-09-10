@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
-import Resume from "../models/Resume";
+import Resume from "../models/resume";
 import Internship from "../models/Internship";
 import { getAIRecommendations } from "../services/matchingService";
 
@@ -9,8 +9,7 @@ export const getRecommendations = async (
   res: Response
 ) => {
   try {
-    const resumeId = req.params.resumeId;
-
+const resumeId = String(req.params.resumeId);
     const resume = await Resume.findOne({
       _id: resumeId,
       userId: req.userId,
