@@ -10,6 +10,8 @@ export interface IInternship extends Document {
   stipend?: string;
   applicationUrl?: string;
   deadline?: Date;
+  recruiterId?: mongoose.Types.ObjectId;
+  status: "active" | "closed";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +60,17 @@ const internshipSchema = new Schema<IInternship>(
 
     deadline: {
       type: Date,
+    },
+
+    recruiterId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "closed"],
+      default: "active",
     },
   },
   {

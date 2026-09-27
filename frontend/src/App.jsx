@@ -7,6 +7,9 @@ import Applications from "./pages/Applications";
 import Dashboard from "./pages/Dashboard";
 import Resume from "./pages/Resume";
 import Internships from "./pages/Internships";
+import CareerIntelligence from "./pages/CareerIntelligence";
+import MockInterview from "./pages/MockInterview";
+import RecruiterDashboard from "./pages/RecruiterDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -65,6 +68,42 @@ function App() {
           element={
             <ProtectedRoute>
               <Applications />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/career"
+          element={
+            <ProtectedRoute>
+              <CareerIntelligence />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/mock-interview"
+          element={
+            <ProtectedRoute>
+              <MockInterview />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/recruiter"
+          element={
+            <ProtectedRoute>
+              <RecruiterDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/recruiter/applications"
+          element={
+            <ProtectedRoute>
+              <RecruiterDashboard />
             </ProtectedRoute>
           }
         />

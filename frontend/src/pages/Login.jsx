@@ -8,11 +8,13 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
       const response = await axios.post(
@@ -23,12 +25,23 @@ function Login() {
         }
       );
 
-      localStorage.setItem("token", response.data.token);
-      navigate("/dashboard");
+      const { token, user } = response.data;
+      localStorage.setItem("token", token);
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+
+      if (user?.role === "recruiter") {
+        navigate("/recruiter");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       setError(
         err.response?.data?.message || "Login failed. Please try again."
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,14 +73,14 @@ function Login() {
           <label>Password</label>
           <input
             type="password"
-            placeholder="••••••••"
+            placeholder="Your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
 
-          <button className="auth-btn" type="submit">
-            Sign In
+          <button className="auth-btn" type="submit" disabled={loading}>
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 

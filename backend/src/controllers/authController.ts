@@ -3,9 +3,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user";
 
-const generateToken = (userId: string) => {
+const generateToken = (userId: string, role: string) => {
   return jwt.sign(
-    { userId },
+    { userId, role },
     process.env.JWT_SECRET as string,
     { expiresIn: "7d" }
   );
@@ -13,11 +13,17 @@ const generateToken = (userId: string) => {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "Name, email and password are required",
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters long",
       });
     }
 
@@ -30,14 +36,16 @@ export const register = async (req: Request, res: Response) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const assignedRole = role === "recruiter" ? "recruiter" : "student";
 
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
+      role: assignedRole,
     });
 
-    const token = generateToken(user._id.toString());
+    const token = generateToken(user._id.toString(), user.role);
 
     res.status(201).json({
       message: "Registration successful",
@@ -57,6 +65,7 @@ export const register = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -86,7 +95,7 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const token = generateToken(user._id.toString());
+    const token = generateToken(user._id.toString(), user.role);
 
     res.json({
       message: "Login successful",

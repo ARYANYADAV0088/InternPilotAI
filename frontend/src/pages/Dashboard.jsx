@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import API_URL from "../api";
+import Layout from "../components/Layout";
 import {
-  LayoutDashboard,
   FileText,
   BriefcaseBusiness,
   ClipboardCheck,
   Bookmark,
-  User,
   Sparkles,
   ArrowRight,
   Target,
@@ -68,11 +67,6 @@ function Dashboard() {
 
   const token = localStorage.getItem("token");
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
-
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -119,7 +113,12 @@ function Dashboard() {
         const internshipData =
           internshipResponse.data.internships || [];
 
-        setUser(userResponse.data.user);
+        const userData = userResponse.data?.user;
+        if (userData?.role === "recruiter") {
+          navigate("/recruiter");
+          return;
+        }
+        setUser(userData);
 
         const resumeData = resumeResponse.data.resumes || [];
 
@@ -210,79 +209,18 @@ const nextAction =
   const availableInternships = internships.slice(0, 3);
 
   return (
-    <div className="dashboard">
-      {/* SIDEBAR */}
-
-      <aside className="sidebar">
-        <div className="logo">
-          <Sparkles size={24} />
-          <span>InternPilot AI</span>
-        </div>
-
-        <nav>
-          <Link to="/dashboard" className="active">
-            <LayoutDashboard size={19} />
-            Dashboard
-          </Link>
-
-          <Link to="/resume">
-            <FileText size={19} />
-            Resume
-          </Link>
-
-          <Link to="/internships">
-            <BriefcaseBusiness size={19} />
-            Internships
-          </Link>
-
-          <Link to="/saved-internships">
-            <Bookmark size={19} />
-            Saved Internships
-          </Link>
-
-          <Link to="/applications">
-            <ClipboardCheck size={19} />
-            Applications
-          </Link>
-
-          <Link to="/profile">
-            <User size={19} />
-            Profile
-          </Link>
-        </nav>
-
-        <button
-          className="logout-btn"
-          onClick={handleLogout}
-        >
-          Logout
-        </button>
-      </aside>
-
-      {/* MAIN */}
-
-      <main className="main-content">
-        {/* TOPBAR */}
-
-        <header className="topbar dashboard-topbar">
+    <Layout>
+      <div className="page dashboard-page">
+        {/* DASHBOARD HEADER */}
+        <div className="page-header dashboard-page-header">
           <div>
-            <p className="welcome">
-              WELCOME BACK <span>✦</span>
-            </p>
-
-            <h1>
-              Good to see you, {firstName}
-            </h1>
-
-            <p className="dashboard-subtitle">
-              Your internship journey, powered by AI.
+            <p className="eyebrow">COMMAND CENTER</p>
+            <h1>Welcome back, {firstName}</h1>
+            <p>
+              Your end-to-end AI career copilot. Track applications, test interview readiness, and bridge your skill gaps.
             </p>
           </div>
-
-          <Link to="/profile" className="profile-circle">
-            {firstName.charAt(0).toUpperCase()}
-          </Link>
-        </header>
+        </div>
 
         {/* HERO */}
 
@@ -679,8 +617,8 @@ const nextAction =
         </section>
 
 
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 }
 

@@ -1,12 +1,21 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import API_URL from "../api";
+import { useEffect, useState, useMemo } from "react";
+import Layout from "../components/Layout";
+import api from "../lib/api";
 import {
   BriefcaseBusiness,
   MapPin,
   Bookmark,
+  BookmarkCheck,
   Send,
   Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Search,
+  Filter,
+  Eye,
+  X,
+  Building2,
+  Clock,
 } from "lucide-react";
 
 function Internships() {
@@ -18,11 +27,16 @@ function Internships() {
   const [loading, setLoading] = useState(true);
   const [matchResult, setMatchResult] = useState(null);
   const [matchingId, setMatchingId] = useState(null);
+  const [applyingId, setApplyingId] = useState(null);
+  const [bannerMsg, setBannerMsg] = useState({ text: "", type: "" });
 
-  const token = localStorage.getItem("token");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [selectedInternship, setSelectedInternship] = useState(null);
 
-  const headers = {
-    Authorization: "Bearer " + token,
+  const showBanner = (text, type = "success") => {
+    setBannerMsg({ text, type });
+    setTimeout(() => setBannerMsg({ text: "", type: "" }), 4000);
   };
 
   const fetchData = async () => {
@@ -33,55 +47,29 @@ function Internships() {
         savedResponse,
         resumeResponse,
       ] = await Promise.all([
-        axios.get(
-          `${API_URL}/api/internships`,
-          { headers }
-        ),
-
-        axios.get(
-          `${API_URL}/api/applications`,
-          { headers }
-        ),
-
-        axios.get(
-         `${API_URL}/api/saved/list`,
-          { headers }
-        ),
-
-        axios.get(
-          `${API_URL}/api/resumes`,
-          { headers }
-        ),
+        api.get("/api/internships"),
+        api.get("/api/applications"),
+        api.get("/api/internships/saved/list"),
+        api.get("/api/resumes"),
       ]);
 
-      setInternships(
-        internshipResponse.data.internships || []
-      );
+      setInternships(internshipResponse.data?.internships || []);
 
       setApplied(
-        (applicationResponse.data.applications || []).map(
-          (app) =>
-            app.internshipId?._id ||
-            app.internshipId
+        (applicationResponse.data?.applications || []).map(
+          (app) => app.internshipId?._id || app.internshipId
         )
       );
 
       setSaved(
-        (savedResponse.data.saved || []).map(
-          (item) =>
-            item.internshipId?._id ||
-            item.internshipId
+        (savedResponse.data?.saved || []).map(
+          (item) => item.internshipId?._id || item.internshipId
         )
       );
 
-      setResumes(
-        resumeResponse.data.resumes || []
-      );
+      setResumes(resumeResponse.data?.resumes || []);
     } catch (error) {
-      console.error(
-        "Failed to load internships:",
-        error
-      );
+      console.error("Failed to load internships:", error);
     } finally {
       setLoading(false);
     }
@@ -93,58 +81,52 @@ function Internships() {
 
   const handleApply = async (internshipId) => {
     try {
-      await axios.post(
-        `${API_URL}/api/applications`,
-        {
-          internshipId,
-          status: "applied",
-        },
-        {
-          headers,
-        }
-      );
+      setApplyingId(internshipId);
+      const selectedResume = resumes[0]?._id;
 
-      setApplied((prev) => [
-        ...prev,
+      await api.post("/api/applications", {
         internshipId,
-      ]);
+        resumeId: selectedResume || undefined,
+        status: "applied",
+      });
+
+      setApplied((prev) => [...prev, internshipId]);
+      showBanner("Application submitted successfully!");
     } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          "Unable to apply for this internship."
+      console.error("Apply error:", error);
+      showBanner(
+        error.response?.data?.message || "Unable to apply for this internship.",
+        "error"
       );
+    } finally {
+      setApplyingId(null);
     }
   };
 
-  const handleSave = async (internshipId) => {
-    if (saved.includes(internshipId)) {
-      return;
-    }
-
+  const handleToggleSave = async (internshipId) => {
+    const isSaved = saved.includes(internshipId);
     try {
-      await axios.post(
-       `${API_URL}/api/internships/${internshipId}/save`,
-        {},
-        {
-          headers,
-        }
-      );
-
-      setSaved((prev) => [
-        ...prev,
-        internshipId,
-      ]);
+      if (isSaved) {
+        await api.delete(`/api/internships/${internshipId}/save`);
+        setSaved((prev) => prev.filter((id) => id !== internshipId));
+        showBanner("Internship removed from saved.");
+      } else {
+        await api.post(`/api/internships/${internshipId}/save`);
+        setSaved((prev) => [...prev, internshipId]);
+        showBanner("Internship saved to your bookmarks!");
+      }
     } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          "Unable to save internship."
+      console.error("Save error:", error);
+      showBanner(
+        error.response?.data?.message || "Unable to update saved status.",
+        "error"
       );
     }
   };
 
   const handleMatch = async (internshipId) => {
     if (resumes.length === 0) {
-      alert("Please create a resume first.");
+      showBanner("Please create a resume first to run AI match.", "error");
       return;
     }
 
@@ -152,259 +134,427 @@ function Internships() {
       setMatchingId(internshipId);
       setMatchResult(null);
 
-      const resumeId = resumes[0]._id;
-
-      const response = await axios.post(
-       `${API_URL}/api/matching`,
-        {
-          resumeId,
-          internshipId,
-        },
-        {
-          headers,
-        }
-      );
-
-      setMatchResult({
+      const response = await api.post("/api/matching/match", {
+        resumeId: resumes[0]._id,
         internshipId,
-        ...response.data.analysis,
       });
-    } catch (error) {
-      console.error(
-        "Resume matching error:",
-        error
-      );
 
-      alert(
-        error.response?.data?.message ||
-          "Unable to match resume."
+      setMatchResult(response.data.analysis);
+      showBanner("AI Match Analysis generated!");
+    } catch (error) {
+      console.error("Match error:", error);
+      showBanner(
+        error.response?.data?.message || "AI matching analysis failed.",
+        "error"
       );
     } finally {
       setMatchingId(null);
     }
   };
 
+  const filteredInternships = useMemo(() => {
+    return internships.filter((item) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesQuery =
+        !q ||
+        item.title?.toLowerCase().includes(q) ||
+        item.company?.toLowerCase().includes(q) ||
+        (item.requiredSkills || []).some((s) => s.toLowerCase().includes(q));
+
+      const matchesLocation =
+        locationFilter === "all" ||
+        (locationFilter === "remote" &&
+          item.location?.toLowerCase().includes("remote")) ||
+        (locationFilter === "onsite" &&
+          !item.location?.toLowerCase().includes("remote"));
+
+      return matchesQuery && matchesLocation;
+    });
+  }, [internships, searchQuery, locationFilter]);
+
   return (
-    <div className="page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">
-            OPPORTUNITIES
-          </p>
-
-          <h1>Internships</h1>
-
-          <p>
-            Discover internships that match your
-            skills.
-          </p>
+    <Layout>
+      <div className="page internships-page">
+        <div className="page-header">
+          <div>
+            <p className="eyebrow">EXPLORE OPPORTUNITIES</p>
+            <h1>Verified Internships</h1>
+            <p>
+              Discover active tech internships, evaluate your resume match with
+              AI, and apply directly.
+            </p>
+          </div>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="empty-card">
-          Loading internships...
-        </div>
-      ) : internships.length === 0 ? (
-        <div className="empty-card">
-          <BriefcaseBusiness size={40} />
+        {bannerMsg.text && (
+          <div
+            className={`alert-banner ${
+              bannerMsg.type === "error" ? "alert-error" : "alert-success"
+            }`}
+          >
+            {bannerMsg.type === "error" ? (
+              <AlertCircle size={18} />
+            ) : (
+              <CheckCircle2 size={18} />
+            )}
+            <span>{bannerMsg.text}</span>
+          </div>
+        )}
 
-          <h3>No internships available</h3>
-
-          <p>
-            New opportunities will appear here.
-          </p>
-        </div>
-      ) : (
-        <>
-          <div className="resume-grid">
-            {internships.map((internship) => {
-              const hasApplied =
-                applied.includes(internship._id);
-
-              const hasSaved =
-                saved.includes(internship._id);
-
-              const isMatching =
-                matchingId === internship._id;
-
-              return (
-                <div
-                  className="resume-card"
-                  key={internship._id}
-                >
-                  <div className="resume-icon">
-                    <BriefcaseBusiness size={24} />
-                  </div>
-
-                  <h3>{internship.title}</h3>
-
-                  <p>{internship.company}</p>
-
-                  {internship.location && (
-                    <p className="location">
-                      <MapPin size={13} />
-                      {internship.location}
-                    </p>
-                  )}
-
-                  {internship.requiredSkills?.length >
-                    0 && (
-                    <p>
-                      <strong>Skills:</strong>{" "}
-                      {internship.requiredSkills.join(
-                        ", "
-                      )}
-                    </p>
-                  )}
-
-                  <div className="internship-actions">
-
-                    <button
-                      className="secondary-btn"
-                      disabled={isMatching}
-                      onClick={() =>
-                        handleMatch(
-                          internship._id
-                        )
-                      }
-                    >
-                      <Sparkles size={15} />
-
-                      {isMatching
-                        ? "Matching..."
-                        : "Match Resume"}
-                    </button>
-
-                    <button
-                      className="secondary-btn"
-                      disabled={hasSaved}
-                      onClick={() =>
-                        handleSave(
-                          internship._id
-                        )
-                      }
-                    >
-                      <Bookmark size={15} />
-
-                      {hasSaved
-                        ? "Saved"
-                        : "Save"}
-                    </button>
-
-                    <button
-                      className="primary-btn"
-                      disabled={hasApplied}
-                      onClick={() =>
-                        handleApply(
-                          internship._id
-                        )
-                      }
-                    >
-                      <Send size={15} />
-
-                      {hasApplied
-                        ? "Applied"
-                        : "Apply"}
-                    </button>
-
-                  </div>
-                </div>
-              );
-            })}
+        {/* SEARCH & FILTERS TOOLBAR */}
+        <div className="search-filter-toolbar">
+          <div className="search-input-box">
+            <Search size={18} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Search by role title, company name, or technology skill..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="clear-search-btn"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
 
-          {matchResult && (
-            <div
-              className="panel"
-              style={{
-                marginTop: "24px",
-              }}
+          <div className="filter-select-box">
+            <Filter size={16} className="filter-icon" />
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
             >
-              <p className="eyebrow">
-                AI INTERNSHIP MATCH
-              </p>
+              <option value="all">All Locations & Formats</option>
+              <option value="remote">Remote Only</option>
+              <option value="onsite">On-Site Only</option>
+            </select>
+          </div>
 
-              <h2>
-                Match Score:{" "}
-                {matchResult.score}/100
-              </h2>
+          <div className="results-counter-chip">
+            <span>{filteredInternships.length} opportunities</span>
+          </div>
+        </div>
 
-              <h3>Matched Skills</h3>
+        {loading ? (
+          <div className="empty-card">
+            <Sparkles size={32} className="spin-slow text-indigo" />
+            <p>Loading curated opportunities...</p>
+          </div>
+        ) : filteredInternships.length === 0 ? (
+          <div className="empty-card">
+            <BriefcaseBusiness size={40} />
+            <h3>No internships found</h3>
+            <p>
+              {searchQuery || locationFilter !== "all"
+                ? "No opportunities match your current filters. Try a different search."
+                : "Check back shortly as new roles are continuously verified."}
+            </p>
+            {(searchQuery || locationFilter !== "all") && (
+              <button
+                type="button"
+                className="secondary-btn"
+                style={{ marginTop: "12px" }}
+                onClick={() => {
+                  setSearchQuery("");
+                  setLocationFilter("all");
+                }}
+              >
+                Reset Filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="internships-grid">
+              {filteredInternships.map((internship) => {
+                const isApplied = applied.includes(internship._id);
+                const isSaved = saved.includes(internship._id);
+                const isRemote = internship.location?.toLowerCase().includes("remote");
 
-              <p>
-                {matchResult.matchedSkills?.length
-                  ? matchResult.matchedSkills.join(
-                      ", "
-                    )
-                  : "No matched skills"}
-              </p>
+                return (
+                  <div className="internship-item-card" key={internship._id}>
+                    <div className="card-top-row">
+                      <div className="company-badge-avatar">
+                        {internship.company?.charAt(0).toUpperCase() || "I"}
+                      </div>
+                      <div className="card-heading-col">
+                        <h3 className="card-role-title">{internship.title}</h3>
+                        <p className="card-company-name">
+                          <Building2 size={14} />
+                          <span>{internship.company}</span>
+                        </p>
+                      </div>
+                      <button
+                        className={`card-action-btn ${isSaved ? "saved-active" : ""}`}
+                        onClick={() => handleToggleSave(internship._id)}
+                        title={isSaved ? "Remove bookmark" : "Save internship"}
+                      >
+                        {isSaved ? (
+                          <BookmarkCheck size={18} className="text-indigo" />
+                        ) : (
+                          <Bookmark size={18} />
+                        )}
+                      </button>
+                    </div>
 
-              <h3>Missing Skills</h3>
+                    <div className="meta-pills-row">
+                      <span className={`meta-pill ${isRemote ? "pill-remote" : "pill-onsite"}`}>
+                        <MapPin size={13} />
+                        {internship.location || "Remote"}
+                      </span>
+                      {internship.stipend && (
+                        <span className="meta-pill pill-stipend">
+                          {internship.stipend}
+                        </span>
+                      )}
+                      {internship.duration && (
+                        <span className="meta-pill pill-duration">
+                          <Clock size={13} />
+                          {internship.duration}
+                        </span>
+                      )}
+                    </div>
 
-              <p>
-                {matchResult.missingSkills?.length
-                  ? matchResult.missingSkills.join(
-                      ", "
-                    )
-                  : "No missing skills"}
-              </p>
+                    <p className="card-desc-snippet">
+                      {internship.description?.slice(0, 140)}...
+                    </p>
 
-              <h3>Strengths</h3>
+                    {internship.requiredSkills?.length > 0 && (
+                      <div className="skills-tags-row">
+                        {internship.requiredSkills.slice(0, 4).map((s, idx) => (
+                          <span key={idx} className="skill-tag">
+                            {s}
+                          </span>
+                        ))}
+                        {internship.requiredSkills.length > 4 && (
+                          <span className="skill-tag skill-tag-more">
+                            +{internship.requiredSkills.length - 4} more
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-              <ul>
-                {matchResult.strengths?.map(
-                  (item, index) => (
-                    <li key={index}>
-                      {item}
-                    </li>
-                  )
-                )}
-              </ul>
+                    <div className="card-actions-footer">
+                      <button
+                        type="button"
+                        className="btn-text-sm"
+                        onClick={() => setSelectedInternship(internship)}
+                      >
+                        <Eye size={15} />
+                        View Details
+                      </button>
 
-              <h3>Weaknesses</h3>
+                      <div className="primary-actions-group">
+                        <button
+                          type="button"
+                          className="secondary-btn btn-sm"
+                          onClick={() => handleMatch(internship._id)}
+                          disabled={matchingId === internship._id}
+                        >
+                          <Sparkles size={14} />
+                          {matchingId === internship._id ? "Matching..." : "AI Match"}
+                        </button>
 
-              <ul>
-                {matchResult.weaknesses?.map(
-                  (item, index) => (
-                    <li key={index}>
-                      {item}
-                    </li>
-                  )
-                )}
-              </ul>
-
-              <h3>Suggestions</h3>
-
-              <ul>
-                {matchResult.suggestions?.map(
-                  (item, index) => (
-                    <li key={index}>
-                      {item}
-                    </li>
-                  )
-                )}
-              </ul>
-
-              <h3>AI Explanation</h3>
-
-{matchResult.insights?.length ? (
-  <ul>
-    {matchResult.insights.map((item, index) => (
-      <li key={index}>{item}</li>
-    ))}
-  </ul>
-) : (
-  <p>
-    {matchResult.explanation ||
-      "AI analysis completed successfully."}
-  </p>
-)}
+                        {isApplied ? (
+                          <button
+                            type="button"
+                            className="applied-status-chip"
+                            disabled
+                          >
+                            <CheckCircle2 size={14} />
+                            Applied
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="primary-btn btn-sm"
+                            onClick={() => handleApply(internship._id)}
+                            disabled={applyingId === internship._id}
+                          >
+                            <Send size={14} />
+                            {applyingId === internship._id ? "Applying..." : "Apply"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          )}
-        </>
-      )}
-    </div>
+
+            {/* JOB DETAILS MODAL */}
+            {selectedInternship && (
+              <div
+                className="modal-backdrop"
+                onClick={() => setSelectedInternship(null)}
+              >
+                <div
+                  className="modal-content job-details-modal card-shadow"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="modal-header">
+                    <div>
+                      <h3>{selectedInternship.title}</h3>
+                      <p className="text-muted">
+                        {selectedInternship.company} • {selectedInternship.location}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="close-modal-btn"
+                      onClick={() => setSelectedInternship(null)}
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  <div className="modal-body job-details-body">
+                    <div className="job-meta-banner">
+                      <div className="meta-stat">
+                        <label>Location</label>
+                        <p>{selectedInternship.location || "Remote"}</p>
+                      </div>
+                      <div className="meta-stat">
+                        <label>Compensation</label>
+                        <p>{selectedInternship.stipend || "Competitive / Unpaid"}</p>
+                      </div>
+                      <div className="meta-stat">
+                        <label>Duration</label>
+                        <p>{selectedInternship.duration || "3 Months"}</p>
+                      </div>
+                      <div className="meta-stat">
+                        <label>Status</label>
+                        <p className="text-green font-semibold">Active Opportunity</p>
+                      </div>
+                    </div>
+
+                    <div className="job-description-section">
+                      <h4>Role Overview & Description</h4>
+                      <p className="job-description-text">
+                        {selectedInternship.description}
+                      </p>
+                    </div>
+
+                    {selectedInternship.requiredSkills?.length > 0 && (
+                      <div className="job-skills-section">
+                        <h4>Target Technical Skills</h4>
+                        <div className="skills-tags-row">
+                          {selectedInternship.requiredSkills.map((s, idx) => (
+                            <span key={idx} className="skill-tag">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="modal-actions">
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      onClick={() => setSelectedInternship(null)}
+                    >
+                      Close
+                    </button>
+
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      onClick={() => {
+                        handleMatch(selectedInternship._id);
+                        setSelectedInternship(null);
+                      }}
+                    >
+                      <Sparkles size={15} />
+                      AI Match Fit
+                    </button>
+
+                    {!applied.includes(selectedInternship._id) ? (
+                      <button
+                        type="button"
+                        className="primary-btn"
+                        onClick={() => {
+                          handleApply(selectedInternship._id);
+                          setSelectedInternship(null);
+                        }}
+                      >
+                        <Send size={15} />
+                        Apply Now
+                      </button>
+                    ) : (
+                      <button type="button" className="applied-status-chip" disabled>
+                        <CheckCircle2 size={15} />
+                        Already Applied
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* AI MATCH RESULT PANEL */}
+            {matchResult && (
+              <div className="panel" style={{ marginTop: "32px" }}>
+                <p className="eyebrow">AI FIT EVALUATION</p>
+                <h2>Match Compatibility Score: {matchResult.score}/100</h2>
+
+                <div style={{ marginTop: "16px" }}>
+                  <h3>Matched Skills</h3>
+                  <div className="tag-list">
+                    {matchResult.matchedSkills?.map((skill, index) => (
+                      <span className="tag" key={index}>
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: "16px" }}>
+                  <h3>Missing Requirements</h3>
+                  <div className="tag-list">
+                    {matchResult.missingSkills?.map((skill, index) => (
+                      <span className="tag tag-missing" key={index}>
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: "16px" }}>
+                  <h3>Recommended Preparation</h3>
+                  <ul className="analysis-bullet-list">
+                    {matchResult.suggestions?.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div style={{ marginTop: "16px" }}>
+                  <h3>AI Recruiter Insights</h3>
+                  {matchResult.insights?.length ? (
+                    <ul className="analysis-bullet-list">
+                      {matchResult.insights.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>
+                      {matchResult.explanation || "AI analysis completed successfully."}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Layout>
   );
 }
 

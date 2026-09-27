@@ -3,8 +3,17 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IApplication extends Document {
   userId: mongoose.Types.ObjectId;
   internshipId: mongoose.Types.ObjectId;
-  status: "saved" | "applied" | "interview" | "selected" | "rejected";
+  resumeId?: mongoose.Types.ObjectId;
+  status:
+    | "saved"
+    | "applied"
+    | "under_review"
+    | "shortlisted"
+    | "interview"
+    | "selected"
+    | "rejected";
   appliedAt?: Date;
+  interviewDate?: Date;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -24,13 +33,30 @@ const applicationSchema = new Schema<IApplication>(
       required: true,
     },
 
+    resumeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Resume",
+    },
+
     status: {
       type: String,
-      enum: ["saved", "applied", "interview", "selected", "rejected"],
+      enum: [
+        "saved",
+        "applied",
+        "under_review",
+        "shortlisted",
+        "interview",
+        "selected",
+        "rejected",
+      ],
       default: "saved",
     },
 
     appliedAt: {
+      type: Date,
+    },
+
+    interviewDate: {
       type: Date,
     },
 
